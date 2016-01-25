@@ -4,21 +4,24 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace ArbitrarySteam
 {
     class SteamAPI
     {
-        private string apiKey; //Get this at http://steamcommunity.com/dev/apikey
+        public static string APIKey { get; set; } //Get this at http://steamcommunity.com/dev/apikey
+        public static bool BadSteamKey { get; set; }
 
-        public SteamUser User { get; set; }
-        public bool NoSteamKey { get; set; }
+        public SteamUser User { get; set; }        
 
         public SteamAPI(string profileURL, bool isCustomURL)
         {
-            if(String.IsNullOrEmpty(apiKey))
+            APIKey = Properties.Settings.Default.SteamAPIKey;
+            Console.WriteLine("key: " + APIKey);
+            if(!IsValidSteamAPIKey())
             {
-                NoSteamKey = true;
+                HandleBadSteamKey();
             }
 
             User = new SteamUser();
@@ -26,45 +29,97 @@ namespace ArbitrarySteam
 
             string profileInfo;
 
-            if(isCustomURL)
+            if(!BadSteamKey)
             {
-                User.Name = RemoveExcessURL(profileURL, isCustomURL);
-                User.SteamID = GetSteamIDFromVanityName(User.Name);
+                if (isCustomURL)
+                {
+                    User.Name = RemoveExcessURL(profileURL, isCustomURL);
+                    User.SteamID = GetSteamIDFromVanityName(User.Name);
 
-                if(String.IsNullOrEmpty(User.SteamID)) //given an invalid vanity name
-                {
-                    User.BadProfile = true;
-                }
-                else //no point in trying these requests if we know they will fail
-                {
-                    profileInfo = RequestPlayerSummary(User.SteamID);
-                    User.AvatarUrl = Utilities.ParseXML(profileInfo, "avatarmedium");  
-                }                              
-            }
-            else
-            {
-                User.SteamID = RemoveExcessURL(profileURL, isCustomURL);
-                profileInfo = RequestPlayerSummary(User.SteamID);
-                User.Name = Utilities.ParseXML(profileInfo, "personaname");
-
-                if (String.IsNullOrEmpty(User.Name)) //given an invalid steam id
-                {
-                    User.BadProfile = true;
+                    if (String.IsNullOrEmpty(User.SteamID)) //given an invalid vanity name
+                    {
+                        User.BadProfile = true;
+                    }
+                    else //no point in trying these requests if we know they will fail
+                    {
+                        profileInfo = RequestPlayerSummary(User.SteamID);
+                        User.AvatarUrl = Utilities.ParseXML(profileInfo, "avatarmedium");
+                    }
                 }
                 else
                 {
-                    User.AvatarUrl = Utilities.ParseXML(profileInfo, "avatarmedium");
-                }                
-            }
+                    User.SteamID = RemoveExcessURL(profileURL, isCustomURL);
+                    profileInfo = RequestPlayerSummary(User.SteamID);
+                    User.Name = Utilities.ParseXML(profileInfo, "personaname");
+
+                    if (String.IsNullOrEmpty(User.Name)) //given an invalid steam id
+                    {
+                        User.BadProfile = true;
+                    }
+                    else
+                    {
+                        User.AvatarUrl = Utilities.ParseXML(profileInfo, "avatarmedium");
+                    }
+                }
+            }            
 
             if(!User.BadProfile)
             {
                 User.GamesString = RequestSteamGamesListString(User.SteamID);
-                User.GetGamesSetFromString();
+                User.GetGamesListFromString();
             }
 
             //Console.WriteLine(String.Format("\"{0}\" \"{1}\" \n\"{2}\" \n\"{3}\" \n\"{4}\"", User.Name, User.SteamID, User.URL, User.AvatarUrl, User.GamesString)); 
             Console.WriteLine("Finished with SteamAPI constructor");
+        }
+
+   
+        private void HandleBadSteamKey()
+        {                
+            string[] mbLines =
+            {                   
+                "You need to add a free Steam API Key.  If you press 'OK' we will open the webpage where you can get one.",
+                "",
+                "Once you have a key, click on the settings icon in the top right to enter the key.",
+                "",
+                "Don't worry, you only need to do this once!"
+            };
+
+            MessageBoxResult result = MessageBox.Show(String.Join(Environment.NewLine, mbLines), "Invalid Steam Key", MessageBoxButton.OKCancel, MessageBoxImage.Information);
+
+            if(result == MessageBoxResult.OK)
+            {
+                Utilities.GoToURL("https://steamcommunity.com/dev/apikey");
+            }         
+        }
+
+        /*
+         * This tests your Steam API key by trying to perform an api call with it.
+         * 
+         * returns bool: true if the API key is valid.  False otherwise
+        */
+        private bool IsValidSteamAPIKey()
+        {
+            string response;
+
+            try
+            {
+               using(WebClient Client = new WebClient())
+               {
+                   
+                   response = Client.DownloadString(String.Format("http://api.steampowered.com/IPlayerService/IsPlayingSharedGame/v0001/?key={0}&steamid=76561197960287930&appid_playing=240&format=xml", APIKey));
+               }
+            }
+            catch(WebException ex)
+            {
+                Console.WriteLine(ex.Message);                
+                BadSteamKey = true;
+
+                return false;
+            }
+
+            BadSteamKey = false;
+            return true;
         }
 
         public static string GetAppNameFromId(string appID)
@@ -86,6 +141,8 @@ namespace ArbitrarySteam
 
                     name = System.Text.RegularExpressions.Regex.Unescape(name);
 
+                    //End
+
                     //we were able to get the name, yet there isn't one.  this means the game is no longer supported. EX. an alpha or beta of a game
                     if (String.IsNullOrEmpty(name)) { return "App no longer supported"; }
 
@@ -105,7 +162,7 @@ namespace ArbitrarySteam
             {
                 using (WebClient Client = new WebClient())
                 {
-                    return Client.DownloadString(String.Format("http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={0}&steamid={1}&format=xml", apiKey, steamID));
+                    return Client.DownloadString(String.Format("http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={0}&steamid={1}&format=xml", APIKey, steamID));
                 }
             }
             catch (Exception except) { Console.WriteLine(except.Message); }
@@ -130,7 +187,7 @@ namespace ArbitrarySteam
             {
                 using (WebClient Client = new WebClient())
                 {
-                    return Client.DownloadString(String.Format("http://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key={0}&vanityurl={1}&format=xml", apiKey, vanityName));
+                    return Client.DownloadString(String.Format("http://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key={0}&vanityurl={1}&format=xml", APIKey, vanityName));
                 }
             }
             catch (Exception except) { Console.WriteLine(except.Message); }
@@ -144,7 +201,7 @@ namespace ArbitrarySteam
             {
                 using (WebClient Client = new WebClient())
                 {
-                    return Client.DownloadString(String.Format("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={0}&steamids={1}&format=xml", apiKey, steamID));
+                    return Client.DownloadString(String.Format("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={0}&steamids={1}&format=xml", APIKey, steamID));
                 }
             }
             catch (Exception except) { Console.WriteLine(except.Message); }

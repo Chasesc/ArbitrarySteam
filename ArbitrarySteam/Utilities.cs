@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,6 +26,18 @@ namespace ArbitrarySteam
 
             return xml.Substring(start, end - start);
         }
-       
+
+        public static void GoToURL(string url)
+        {
+            try
+            {
+                Process.Start(url);
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }   
+               
     }
 }

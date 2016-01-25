@@ -46,11 +46,7 @@
         </Grid>
         <!--End of logon -->
 
-        <Grid Name="gameSelector" Visibility="Collapsed">
-            <!--
-            <Grid.Background>
-                <ImageBrush ImageSource="http://cdn.akamai.steamstatic.com/steam/apps/377160/page_bg_generated_v6b.jpg"/>
-            </Grid.Background>-->
+        <Grid Name="gameSelector" Visibility="Collapsed">          
             
             <TextBlock x:Name="tbGameName"  Margin="0,-225,0,0" FontSize="36"  Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" FontFamily="Segoe UI Light" />
             <Image x:Name="gameImage" HorizontalAlignment="Center" VerticalAlignment="Center" Width="292" Height="136" MouseDown="GameImage_MouseDown" Cursor="Hand"/>
@@ -70,6 +66,16 @@
             <Label x:Name="labelUserName" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10,10,0,0" Foreground="White" />
         </Grid>
         <!--End of gameSelector -->
+        
+        <Grid x:Name="settings" Visibility="Collapsed">
+            <TextBlock  HorizontalAlignment="Center" VerticalAlignment="Top" FontFamily="Segoe UI Light" FontSize="18" Foreground="White" Margin="0,22,0,0" Text="Settings, NOT FINAL LAYOUT"/>
+
+            <TextBox x:Name="settings_tbAPIKey" Width="262" TextWrapping="NoWrap" HorizontalAlignment="Center" VerticalAlignment="Center" />         
+            <Label Content="API Key" FontSize="12" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,40,0,0" />      
+            <CheckBox x:Name="settings_checkOnlyInstalled" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" Content="Only select installed games" Margin="0,110,0,0"/>
+            
+            
+        </Grid>
 
     </Grid>
     <!--End of main -->

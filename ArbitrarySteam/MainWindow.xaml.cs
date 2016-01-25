@@ -24,26 +24,21 @@ namespace ArbitrarySteam
         private System.Windows.Visibility logonVisBefore, gameSelectorVisBefore;
 
         private SteamAPI steam;
-        private SteamGame currGame;
-
-        private int currGameIndex;
+        private SteamGame currentGame, previousGame;
 
         public MainWindow()
         {
             InitializeComponent();
-            //SetMinWindowSize((Int32)System.Windows.SystemParameters.PrimaryScreenHeight / 3, (Int32)System.Windows.SystemParameters.PrimaryScreenWidth / 3);
-            //SetMinWindowSize(0, 0);
 
-        }
+            Properties.Settings.Default.InstalledGames = SteamUser.GetInstalledGamesList();
+            if(Properties.Settings.Default.InstalledGames == null)
+            {
+                DisplayInfoOrError("SteamLocation set incorrectly!  Please change it in the settings!", 10000, true);
+            }
 
-        //TODO: REMOVE THIS?
-        private void SetMinWindowSize(Int32 height, Int32 width)
-        {
-            SetValue(MainWindow.MinHeightProperty, height);
-            SetValue(MainWindow.MinWidthProperty, width);            
-        }
-
-        
+            
+                      
+        }        
 
         private void TextBoxLink_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -125,142 +120,162 @@ namespace ArbitrarySteam
 
             steam = new SteamAPI(tbLink.Text, (bool)radioCustomURL.IsChecked);
 
-            if(steam.NoSteamKey)
+           
+            if(SteamAPI.BadSteamKey)
             {
-                DisplayInfoOrError("No Steam key set!", 4000, true);
+                DisplayInfoOrError("Invalid Steam Key", 3000, true);
                 return;
             }
-
-            if(steam.User.BadProfile) //we were unable to find the steam account associated with the given URL
-            {
-                if(steam.User.Games.Count <= 0)
-                {
-                    DisplayInfoOrError("That Steam user doesn't have any games!", 4000);
-                }
-                else
-                {
-                    DisplayInfoOrError("That account doesn't exist, or we couldn't connect to Steam's servers!", 5000, true);
-                }
-               
+            else if(steam.User.BadProfile) //we were unable to find the steam account associated with the given URL
+            {              
+                DisplayInfoOrError("That account doesn't exist, or we couldn't connect to Steam's servers!", 5000, true);              
                 return;
-            }      
+            }
+            else if(steam.User.Games.Count <= 0)
+            {
+                DisplayInfoOrError("That steam user doesn't have any games!", 4000, true);
+            }
 
             labelUserName.Content = steam.User.Name;
 
-            NewGame(true);
-
-            
+            NewGame();            
 
             logon.Visibility = System.Windows.Visibility.Collapsed;
             gameSelector.Visibility = System.Windows.Visibility.Visible;           
         }
 
-        private bool NewGame(bool isInitialCall)
-        {
-            currGameIndex = Utilities.rng.Next(steam.User.Games.Count);
-            currGame = steam.User.Games.ElementAt(currGameIndex);
-
-            currGame.Name = SteamAPI.GetAppNameFromId(currGame.AppID);
-
-            if (currGame.Name == "App no longer supported") //Some "games" are alphas or betas that no longer work 
-            { 
-                NewGame(false);
-            }
-
-            //string message = isInitialCall ? "How about this game?" : "No?  What about this?";
-            //DisplayInfoOrError(message, 2250);
-
-            tbGameName.Text = currGame.Name;
-            labelGameTime.Content = String.Format("You have {0} hours in this game.", (currGame.HoursPlayed / 60.0f).ToString("0.0")); //Steam's API returns time played in mins.  This converts to hours
-
-            gameSelector.Background = new ImageBrush(new BitmapImage(new Uri(String.Format("http://cdn.akamai.steamstatic.com/steam/apps/{0}/page_bg_generated_v6b.jpg", currGame.AppID))));
-            gameImage.Source = new BitmapImage(new Uri(String.Format("http://cdn.akamai.steamstatic.com/steam/apps/{0}/header_292x136.jpg", currGame.AppID)));
-            
-
-            return true;
-
-        }
+        
 
 
         private void ButtonBack_Click(object sender, RoutedEventArgs e)
-        {            
+        {
+            if(settings.Visibility == System.Windows.Visibility.Visible)
+            {
+                SaveSettings();
+            }
+
+            gameSelector.Visibility = settings.Visibility = System.Windows.Visibility.Collapsed;
+
             logon.Visibility = System.Windows.Visibility.Visible;
-            gameSelector.Visibility = System.Windows.Visibility.Collapsed;
         }
 
         private void ButtonSettings_Click(object sender, RoutedEventArgs e)
         {            
             if(logon.Visibility == System.Windows.Visibility.Visible || gameSelector.Visibility == System.Windows.Visibility.Visible)
-            {
-                logonVisBefore = logon.Visibility;
-                gameSelectorVisBefore = gameSelector.Visibility;
-
-                logon.Visibility = gameSelector.Visibility = System.Windows.Visibility.Collapsed;
-                //TODO: SHOW SETTINGS
+            {              
+                ShowSettings();
             }
             else
             {
                 logon.Visibility = logonVisBefore;
                 gameSelector.Visibility = gameSelectorVisBefore;
+
+                SaveSettings();
+                settings.Visibility = System.Windows.Visibility.Collapsed;
             }      
         }
 
+
+
         private void ButtonLaunchOrDownload_Click(object sender, RoutedEventArgs e)
         {
-            if(String.IsNullOrEmpty(currGame.AppID)) //better safe than sorry
+            if (String.IsNullOrEmpty(currentGame.AppID)) //better safe than sorry
             {
                 DisplayInfoOrError("No game is currently selected.  How did this happen?", 5000, true);
                 return;
             }
 
-            //TODO: CHANGE THIS TO USE SETTINGS FOR STEAM'S LOCATION
-            string location = @"C:\Program Files (x86)\Steam\Steam.exe";
-            Process.Start(location, String.Format("-applaunch {0}", currGame.AppID));
+            try
+            {
+                Process.Start(Properties.Settings.Default.SteamLocation, String.Format("-applaunch {0}", currentGame.AppID));
+            }
+            catch
+            {
+                DisplayInfoOrError(String.Format("Unable to start game!  Change your steam location in the settings!\nLocation: {0}", Properties.Settings.Default.SteamLocation), 4000, true);
+            }
+        }
+            
+        private void ButtonNewRandomGame_Click(object sender, RoutedEventArgs e)
+        {
+            NewGame();
+        }
 
-            /*
+        #endregion
+
+        private void NewGame()
+        {
+            int randomIndex = Properties.Settings.Default.InstalledOnly ?
+                    Utilities.rng.Next(Properties.Settings.Default.InstalledGames.Count) :
+                    Utilities.rng.Next(steam.User.Games.Count);
+
+            //TODO: clean this up. it's pretty messy
+
+            //If we are only selecting from the pool of installed games, our current game is a random object from the list of installed games.
+            //At this point, we do not have the playtime of that game within this object, but we do have it in the list of all owned games.
+            //we find the same object from the list of all owned games using .Find and set that object as the current game.  This way we have the playtime
+            //if we are selecting from the pool of all games, our current game is a random index from the list of all games.     
+            //Reasoning: O(n) on a list with an expected size of around ~100 is better than an API call to get the time played.
+            currentGame = Properties.Settings.Default.InstalledOnly ?
+                    steam.User.Games.Find(Properties.Settings.Default.InstalledGames[randomIndex].Equals) :
+                    steam.User.Games[randomIndex];
+
+            //.Find returned null which means the user has an installed game which they do not own, do not show them this game
+            if (currentGame == null)
+            {
+                NewGame();
+            }
+
+            currentGame.Name = SteamAPI.GetAppNameFromId(currentGame.AppID);
+
+            if (currentGame.Equals(previousGame) || currentGame.Name == "App no longer supported") //Some "games" are alphas or betas that no longer work
+            {
+                NewGame();
+            }
+
+
+            tbGameName.Text = currentGame.Name;
+            labelGameTime.Content = String.Format("You have {0} hours in this game.", (currentGame.MinutesPlayed / 60.0f).ToString("0.0")); //Steam's API returns time played in mins.  This converts to hours
+
+            gameSelector.Background = new ImageBrush(new BitmapImage(new Uri(String.Format("http://cdn.akamai.steamstatic.com/steam/apps/{0}/page_bg_generated_v6b.jpg", currentGame.AppID))));
+            gameImage.Source = new BitmapImage(new Uri(String.Format("http://cdn.akamai.steamstatic.com/steam/apps/{0}/header_292x136.jpg", currentGame.AppID)));
+
+            if (Properties.Settings.Default.InstalledOnly) //we know they have this game installed
+            {
+                SetButtonLaunchOrDownloadImage("resources/images/launch_64x64.png");
+                buttonLaunchOrDownload.ToolTip = "Launch the game";
+            }
+            else //We need to find out if they have this game installed to show them the correct image.
+            {
+                if (Properties.Settings.Default.InstalledGames.Contains(currentGame))
+                {
+                    SetButtonLaunchOrDownloadImage("resources/images/launch_64x64.png");
+                    buttonLaunchOrDownload.ToolTip = "Launch the game";
+                }
+                else
+                {
+                    SetButtonLaunchOrDownloadImage("resources/images/download_64x64.png");
+                    buttonLaunchOrDownload.ToolTip = "Download the game";
+                }
+            }
+
+            previousGame = currentGame;
+        }
+
+        private void SetButtonLaunchOrDownloadImage(string imageLocation)
+        {
             buttonLaunchOrDownload.Content = null;
 
             Image image = new Image();
-            image.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(BaseUriHelper.GetBaseUri(this), "resources/images/download_64x64.png"));
+            image.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(BaseUriHelper.GetBaseUri(this), imageLocation));
             image.Width = 64;
             image.Height = 64;
 
             StackPanel stackPan = new StackPanel();
             stackPan.Orientation = Orientation.Horizontal;
-            stackPan.Children.Clear();
             stackPan.Children.Add(image);
 
-
             buttonLaunchOrDownload.Content = stackPan;
-
-            
-            Uri res = new Uri(".../.../resources/images/download_64x64.png", UriKind.Relative);
-            System.Windows.Resources.StreamResourceInfo stream = Application.GetRemoteStream(res);
-
-            BitmapFrame temp = BitmapFrame.Create(stream.Stream);
-
-            var brush = new ImageBrush();
-            brush.ImageSource = temp;
-
-            buttonLaunchOrDownload.Background = brush;//new ImageBrush(new BitmapImage(new Uri(BaseUriHelper.GetBaseUri(this) ,"resources/images/download_64x64.png")));
-            
-
-            ImageBrush brush1 = new ImageBrush();
-            BitmapImage image = new BitmapImage(new Uri(BaseUriHelper.GetBaseUri(this), "resources/images/download_64x64.png"));
-            brush1.ImageSource = image;
-
-            buttonLaunchOrDownload.Background = brush1;
-             * */
-
-            Console.WriteLine("Past background in buttonLaunchOrDownload_Click");
         }
-
-        private void ButtonNewRandomGame_Click(object sender, RoutedEventArgs e)
-        {
-            NewGame(false);
-        }
-
-        #endregion
 
         private void RadioCustomURL_Click(object sender, RoutedEventArgs e)
         {
@@ -274,19 +289,42 @@ namespace ArbitrarySteam
 
         private void GameImage_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            try
-            {
-                Process.Start(String.Format("http://store.steampowered.com/app/{0}", currGame.AppID));
-            }
-            catch(Exception ex)
-            {
-                DisplayInfoOrError(ex.Message, 5000, true);
-            }
-            
+            Utilities.GoToURL(String.Format("http://store.steampowered.com/app/{0}", currentGame.AppID));
         }
 
-        
-       
+        //Settings methods that need access to the UI elements
+        #region Settings Stuff
+
+        private void SaveSettings()
+        {
+            Properties.Settings.Default.SteamAPIKey = settings_tbAPIKey.Text;
+
+            if (settings_checkOnlyInstalled.IsChecked.HasValue) //IsChecked is a Nullable<bool>.  We can't save its value to a normal bool if it's null.
+            {
+                Properties.Settings.Default.InstalledOnly = (bool)settings_checkOnlyInstalled.IsChecked;
+            }
+           
+            Properties.Settings.Default.Save();
+        }
+
+        private void ShowSettings()
+        {
+            logonVisBefore = logon.Visibility;
+            gameSelectorVisBefore = gameSelector.Visibility;
+
+            logon.Visibility = gameSelector.Visibility = System.Windows.Visibility.Collapsed;
+
+            settings_tbAPIKey.Text = Properties.Settings.Default.SteamAPIKey;
+            settings_checkOnlyInstalled.IsChecked = Properties.Settings.Default.InstalledOnly;
+
+            settings.Visibility = System.Windows.Visibility.Visible;
+        }
+
+        #endregion
+
+
+
+
 
     }
 }

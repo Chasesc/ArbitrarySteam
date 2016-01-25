@@ -10,13 +10,42 @@ namespace ArbitrarySteam
     {
         public string Name { get; set; }
         public string AppID { get; set; }
-        public double HoursPlayed { get; set; } 
+        public double MinutesPlayed { get; set; } 
+
+        public SteamGame(string appID)
+        {
+            AppID = appID;
+        }
 
         public SteamGame(string appID, double hoursPlayed)
         {
             AppID = appID;
-            HoursPlayed = hoursPlayed;
+            MinutesPlayed = hoursPlayed;
         }
-       
+
+        public override bool Equals(object obj)
+        {
+            if (obj is SteamGame == false)
+            {
+                return false;
+            }
+                
+            return Equals((SteamGame)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        public bool Equals(SteamGame other)
+        {
+            if(other == null)
+            {
+                return false;
+            }
+
+            return this.AppID == other.AppID;
+        }
     }
 }
