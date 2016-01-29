@@ -33,11 +33,9 @@ namespace ArbitrarySteam
             {
                 Process.Start(url);
             }
-            catch(Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }   
+            catch (Exception ex) { Console.WriteLine(ex.Message); }
+        }
+        
                
     }
 }

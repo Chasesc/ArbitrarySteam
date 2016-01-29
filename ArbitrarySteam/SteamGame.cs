@@ -17,18 +17,15 @@ namespace ArbitrarySteam
             AppID = appID;
         }
 
-        public SteamGame(string appID, double hoursPlayed)
+        public SteamGame(string appID, double minutesPlayed)
         {
             AppID = appID;
-            MinutesPlayed = hoursPlayed;
+            MinutesPlayed = minutesPlayed;
         }
 
         public override bool Equals(object obj)
         {
-            if (obj is SteamGame == false)
-            {
-                return false;
-            }
+            if (obj is SteamGame == false) { return false; }           
                 
             return Equals((SteamGame)obj);
         }
@@ -40,10 +37,7 @@ namespace ArbitrarySteam
 
         public bool Equals(SteamGame other)
         {
-            if(other == null)
-            {
-                return false;
-            }
+            if (other == null) { return false; }
 
             return this.AppID == other.AppID;
         }

@@ -7,7 +7,8 @@
         <Grid.Background>
             <ImageBrush ImageSource="resources/images/logon_background.png"/>
         </Grid.Background>
-
+        
+        <!-- Overlay -->
         <Grid Name="Overlay" Panel.ZIndex="1000" Visibility="Visible">
             <Button x:Name="buttonSettings"  HorizontalAlignment="Right"  VerticalAlignment="Top" Width="38" Height="38" Background="Transparent" BorderThickness="0" Margin="0,10,10,0" Click="ButtonSettings_Click" Focusable="False" BorderBrush="{x:Null}">
                 <StackPanel>
@@ -26,7 +27,8 @@
 
         </Grid>
         <!--End of Overlay -->
-
+        
+        <!-- logon -->
         <Grid Name="logon" Visibility="Visible">
 
             <TextBlock  Margin="0,-225,0,0" FontSize="36"  Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" Text="Arbitrary Steam" FontFamily="Segoe UI Light" Height="60" Width="262" />
@@ -46,15 +48,16 @@
         </Grid>
         <!--End of logon -->
 
-        <Grid Name="gameSelector" Visibility="Collapsed">          
-            
+        <!-- gameSelector -->
+        <Grid Name="gameSelector" Visibility="Collapsed">
+
             <TextBlock x:Name="tbGameName"  Margin="0,-225,0,0" FontSize="36"  Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" FontFamily="Segoe UI Light" />
             <Image x:Name="gameImage" HorizontalAlignment="Center" VerticalAlignment="Center" Width="292" Height="136" MouseDown="GameImage_MouseDown" Cursor="Hand"/>
             <Label x:Name="labelGameTime" Foreground="White" HorizontalAlignment="Center"  VerticalAlignment="Center" Margin="0,200,0,0" />
             <Button x:Name="buttonLaunchOrDownload" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="150,350,0,0" Width="76" Height="76" Background="Transparent" BorderBrush="{x:Null}" Click="ButtonLaunchOrDownload_Click" >
                 <StackPanel>
                     <Image Source="resources/images/launch_64x64.png" Width="64" Height="64"/>
-                </StackPanel> 
+                </StackPanel>
             </Button>
 
             <Button x:Name="buttonNewRandomGame" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="-150,350,0,0" Width="76" Height="76" Background="Transparent" BorderBrush="{x:Null}" Click="ButtonNewRandomGame_Click">
@@ -62,20 +65,27 @@
                     <Image Source="resources/images/6_sided_die_64x64.png" Width="64" Height="64"/>
                 </StackPanel>
             </Button>
-            
+
             <Label x:Name="labelUserName" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10,10,0,0" Foreground="White" />
         </Grid>
         <!--End of gameSelector -->
         
+        <!-- settings, this is not the final layout.  It looks pretty bad at the moment. -->
         <Grid x:Name="settings" Visibility="Collapsed">
             <TextBlock  HorizontalAlignment="Center" VerticalAlignment="Top" FontFamily="Segoe UI Light" FontSize="18" Foreground="White" Margin="0,22,0,0" Text="Settings, NOT FINAL LAYOUT"/>
 
-            <TextBox x:Name="settings_tbAPIKey" Width="262" TextWrapping="NoWrap" HorizontalAlignment="Center" VerticalAlignment="Center" />         
-            <Label Content="API Key" FontSize="12" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,40,0,0" />      
-            <CheckBox x:Name="settings_checkOnlyInstalled" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" Content="Only select installed games" Margin="0,110,0,0"/>
+            <TextBox x:Name="settings_tbAPIKey" Width="262" TextWrapping="NoWrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,0" />
+            <Label Content="API Key" FontSize="12" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,40,0,0" />
             
+            <CheckBox x:Name="settings_checkOnlyInstalled" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" Content="Only select installed games" Margin="0,125,0,0"/>
             
+            <ListBox x:Name="settings_lbDirList" Background="Gray" Foreground="White" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,200"  Width="262"/>
+            <TextBox x:Name="settings_tbDir" Width="218" TextWrapping="NoWrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,42,125" Height="18" />
+            <Button x:Name="settings_buttonAdd" Content="+" HorizontalAlignment="Center" Margin="200,0,0,125" VerticalAlignment="Center" Width="20" Click="ButtonSettings_buttonAdd_Click"/>
+            <Button x:Name="settings_buttonSub" Content="-" HorizontalAlignment="Center" Margin="244,0,0,125" VerticalAlignment="Center" Width="20" Click="ButtonSettings_buttonSub_Click"/>
+            <Label Content="Steam Location(s)" FontSize="12" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,80" />
         </Grid>
+        <!-- End of settings -->
 
     </Grid>
     <!--End of main -->

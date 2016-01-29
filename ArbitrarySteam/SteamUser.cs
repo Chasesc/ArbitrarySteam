@@ -21,33 +21,30 @@ namespace ArbitrarySteam
         public List<SteamGame> Games { get; set; }
 
         public static List<SteamGame> GetInstalledGamesList()
-        {
-            //SteamLocation is ..\Steam\steam.exe, we want to just have ..\Steam so we can add \steamapps to the end
-            string steamLocTemp = Properties.Settings.Default.SteamLocation.Remove(Properties.Settings.Default.SteamLocation.IndexOf("steam.exe"));
-            string steamAppsFolder = String.Format("{0}\\steamapps", steamLocTemp);
-            
+        {            
             List<SteamGame> installedGames = new List<SteamGame>();
             List<string> filesInSteamapps;
 
-            try
-            {
-                filesInSteamapps = System.IO.Directory.GetFiles(steamAppsFolder, "*.acf").ToList<string>();
-            }
-            catch
-            {
-                return null;
-            }
-            
+            if (Properties.Settings.Default.SteamDirectories == null) { return null; }
 
-            foreach(string s in filesInSteamapps)
+            foreach(string steamAppsFolder in Properties.Settings.Default.SteamDirectories)
             {
-                if(s.Contains("appmanifest_"))
+                try
                 {
-                    string appID = s.Substring(s.IndexOf("appmanifest_") + "appmanifest_".Length); //removes the path and additional text
-                    appID = appID.Remove(appID.Length - 4); //removes .acf file extension.  4 is the length of ".acf"
-                    installedGames.Add(new SteamGame(appID));
+                    filesInSteamapps = System.IO.Directory.GetFiles(steamAppsFolder, "*.acf").ToList<string>();
                 }
-            }
+                catch { return null; }
+
+                foreach (string file in filesInSteamapps)
+                {
+                    if (file.Contains("appmanifest_"))
+                    {
+                        string appID = file.Substring(file.IndexOf("appmanifest_") + "appmanifest_".Length); //removes the path and additional text
+                        appID = appID.Remove(appID.Length - 4); //removes .acf file extension.  4 is the length of ".acf"
+                        installedGames.Add(new SteamGame(appID));
+                    }
+                }
+            }                  
 
             return installedGames;
 

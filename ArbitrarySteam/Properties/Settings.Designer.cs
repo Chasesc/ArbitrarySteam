@@ -69,5 +69,16 @@ namespace ArbitrarySteam.Properties {
                 this["InstalledOnly"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public global::System.Collections.Generic.List<string> SteamDirectories {
+            get {
+                return ((global::System.Collections.Generic.List<string>)(this["SteamDirectories"]));
+            }
+            set {
+                this["SteamDirectories"] = value;
+            }
+        }
     }
 }

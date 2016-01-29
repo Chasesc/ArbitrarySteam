@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,16 +30,10 @@ namespace ArbitrarySteam
         public MainWindow()
         {
             InitializeComponent();
+            SetInstalledGames();
+        }
+      
 
-            Properties.Settings.Default.InstalledGames = SteamUser.GetInstalledGamesList();
-            if(Properties.Settings.Default.InstalledGames == null)
-            {
-                DisplayInfoOrError("SteamLocation set incorrectly!  Please change it in the settings!", 10000, true);
-            }
-
-            
-                      
-        }        
 
         private void TextBoxLink_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -98,8 +93,6 @@ namespace ArbitrarySteam
                 timer.Dispose();
             };            
         }
-
-        #region Button_Clicks
 
         private void ButtonContinue_Click(object sender, RoutedEventArgs e)
         {
@@ -200,7 +193,6 @@ namespace ArbitrarySteam
             NewGame();
         }
 
-        #endregion
 
         private void NewGame()
         {
@@ -303,6 +295,22 @@ namespace ArbitrarySteam
             {
                 Properties.Settings.Default.InstalledOnly = (bool)settings_checkOnlyInstalled.IsChecked;
             }
+
+            List<string> steamDirectoriesBefore = Properties.Settings.Default.SteamDirectories;
+
+            if(settings_lbDirList.Items.Count != 0)
+            {
+                Properties.Settings.Default.SteamLocation = settings_lbDirList.Items[0].ToString();
+
+                //We skip the first element because it is the location of steam.exe, not a steamapps directory
+                Properties.Settings.Default.SteamDirectories = settings_lbDirList.Items.Cast<string>().Skip(1).ToList();
+
+                if(steamDirectoriesBefore != Properties.Settings.Default.SteamDirectories)
+                {
+                    SetInstalledGames();
+                }                
+            }
+            
            
             Properties.Settings.Default.Save();
         }
@@ -317,10 +325,81 @@ namespace ArbitrarySteam
             settings_tbAPIKey.Text = Properties.Settings.Default.SteamAPIKey;
             settings_checkOnlyInstalled.IsChecked = Properties.Settings.Default.InstalledOnly;
 
+            if(Properties.Settings.Default.SteamDirectories != null)
+            {
+                settings_lbDirList.Items.Clear();
+                settings_lbDirList.Items.Add(Properties.Settings.Default.SteamLocation);                
+                foreach (string str in Properties.Settings.Default.SteamDirectories)
+                {
+                    settings_lbDirList.Items.Add(str);
+                } 
+            }
+                      
+           
+
             settings.Visibility = System.Windows.Visibility.Visible;
         }
 
+        private void ButtonSettings_buttonAdd_Click(object sender, RoutedEventArgs e)
+        {
+            //TODO: Make this method open the file browser instead
+
+            string location = settings_tbDir.Text.ToLower();
+            bool invalidInput = String.IsNullOrEmpty(location);
+
+            //If you copy a file or folder path using shift + right click -> copy as path it adds quotes around your path.  remove them
+            location = location.Replace("\"", String.Empty); 
+
+            if (settings_lbDirList.Items.Contains(location)) { return; }
+
+            if(settings_lbDirList.Items.Count == 0) //The first location must go directly to steam.exe
+            {
+                if (!location.Contains("steam.exe") || !File.Exists(location)) { invalidInput = true; }
+            }
+            else
+            {
+                if (!location.Contains("steamapps") || !Directory.Exists(location)) { invalidInput = true; }
+            }
+
+            if(invalidInput)
+            {
+                MessageBox.Show("The first input must be the location of steam.exe.\nAny additional input should be the location(s) of the steamapps directory.",
+                        "Input information", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            settings_lbDirList.Items.Add(location);
+        }
+
+        private void ButtonSettings_buttonSub_Click(object sender, RoutedEventArgs e)
+        {
+            if(settings_lbDirList.Items.Count != 0)
+            {
+                if(settings_lbDirList.SelectedItem != null)
+                {
+                    settings_lbDirList.Items.Remove(settings_lbDirList.SelectedItem); //remove current item selected if it exists
+                }
+                else
+                {
+                    settings_lbDirList.Items.RemoveAt(settings_lbDirList.Items.Count - 1); //remove the last item if no item is selected
+                }                
+            }
+        }
+
+        private void SetInstalledGames()
+        {
+            Properties.Settings.Default.InstalledGames = SteamUser.GetInstalledGamesList();
+            if (Properties.Settings.Default.InstalledGames == null)
+            {
+                DisplayInfoOrError("SteamLocation set incorrectly!  Please change it in the settings!", 5000, true);
+            }
+        }
+
         #endregion
+
+       
+
+       
 
 
 
